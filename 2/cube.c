@@ -19,7 +19,7 @@ int lcm (int a, int b) {
 }
 
 
-GLdouble phi = 0, psi = 45, aside = 1;
+GLint phi = 0, psi = 45, aside = 1, top = 1;
 GLdouble PI = 3.14159265;
 
 int h, w;
@@ -27,40 +27,43 @@ int h, w;
 void reshape(int width, int height) {
 	h = height;
 	w = width;
-	glViewport(0, 0, h/2, w/2);
 }
 
 
-void draw() {
+void rdraw() {
 	glBegin(GL_TRIANGLES); 
 		glColor3f(1.0f,0.0f,0.0f);                      // Красный
-		glVertex3f( 0.0f, 1.0f, 0.0f);                  // Верх треугольника (Передняя)
-		glColor3f(0.0f,1.0f,0.0f);                      // Зеленный
-		glVertex3f(-1.0f,-1.0f, 1.0f);                  // Левая точка
-		glColor3f(0.0f,0.0f,1.0f);                      // Синий
-		glVertex3f( 1.0f,-1.0f, 1.0f); 
+		glVertex3f( 0.0f, 1.0f, 0.0f);
+		glVertex3f(-1.0f,-0.5f, 1.0f);
+		glVertex3f( 0.7f,-1.0f, 1.0f); 
 		
-		glColor3f(1.0f,0.0f,0.0f);                      // Красная
-		glVertex3f( 0.0f, 1.0f, 0.0f);                  // Верх треугольника (Правая)
-		glColor3f(0.0f,0.0f,1.0f);                      // Синия
-		glVertex3f( 1.0f,-1.0f, 1.0f);                  // Лево треугольника (Правая)
-		glColor3f(0.0f,1.0f,0.0f);                      // Зеленная
-		glVertex3f( 1.0f,-1.0f, -1.0f);                 // Право треугольника (Правая)
-		
-		glColor3f(1.0f,0.0f,0.0f);                      // Красный
-		glVertex3f( 0.0f, 1.0f, 0.0f);                  // Низ треугольника (Сзади)
-		glColor3f(0.0f,1.0f,0.0f);                      // Зеленный
-		glVertex3f( 1.0f,-1.0f, -1.0f);                 // Лево треугольника (Сзади)
 		glColor3f(0.0f,0.0f,1.0f);                      // Синий
-		glVertex3f(-1.0f,-1.0f, -1.0f);                 // Право треугольника (Сзади)
+		glVertex3f( 0.3f, 0.1f, 0.2f);
+		glVertex3f( 0.6f,-1.0f, 1.0f);
+		glVertex3f( 1.0f,-1.0f, 0.8f);
 		
-		glColor3f(1.0f,0.0f,0.0f);                      // Красный
-		glVertex3f( 0.0f, 1.0f, 0.0f);                  // Верх треугольника (Лево)
-		glColor3f(0.0f,0.0f,1.0f);                      // Синий
-		glVertex3f(-1.0f,-1.0f,-1.0f);                  // Лево треугольника (Лево)
-		glColor3f(0.0f,1.0f,0.0f);                      // Зеленный
-		glVertex3f(-1.0f,-1.0f, 1.0f);                  // Право треугольника (Лево)
-	glEnd();                                        // Кончили рисовать пирамиду
+		glColor3f(0.0f,1.0f,0.0f);                      // Зеленый
+		glVertex3f( 0.0f, -1.0f, -0.7f); 
+		glVertex3f( 1.0f, 0.9f, -1.0f);
+		glVertex3f(1.0f, 0.5f, 0.4f);
+	glEnd();
+}
+
+void draw() {
+	glutWireTeapot(0.5);
+	
+}
+
+void lookAt() {
+	double rpsi = PI*psi/180;
+	double rphi = PI*phi/180;
+	double eye_z = sin(rpsi);
+	double xy = cos(rpsi);
+	double eye_x = xy * cos(rphi);
+	double eye_y = xy * sin(rphi); //sqrt(xy*xy - eye_x*eye_x);
+	//gluLookAt(eye_x, eye_y, eye_z, -eye_x, -eye_y, -eye_z, 0, 0, top);
+	glRotated(phi, 0, 0, 1);
+	glRotated(psi, 1, 0, 0);
 }
 
 int angle = 0, x = 0, y = 1, z = 0;
@@ -83,42 +86,57 @@ double X_P[16] = {
 double Y_P[16] = {
 	1, 0, 0, 0,
 	0, 0, 0, 0,
-	0, 0, 1, -1,
+	0, 0, 1, 0,
 	0, 0, 0, 1
 };
 
 double Z_P[16] = {
 	1, 0, 0, 0,
 	0, 1, 0, 0,
-	0, 0, 0, -1,
+	0, 0, 0, 0,
 	0, 0, 0, 1
 };
 
 void display() {
-	//glViewport(0, 0, h/2, w/2);
-	//glMatrixMode(GL_MODELVIEW);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	glClear(GL_COLOR_BUFFER_BIT);
+	
+	// first view
+	glViewport (0, h/2, w/2, h/2); 
+	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	double rpsi = PI*psi/180;
-	double rphi = PI*phi/180;
-	double eye_z = sin(rpsi);
-	double xy = cos(rpsi);
-	double eye_x = xy * cos(rphi);
-	double eye_y = sqrt(xy*xy - eye_x*eye_x);
+	//glOrtho(-2, 2, -2, 2, -2, 2);
 	
-	gluLookAt(5*eye_x, 5*eye_y, 5*eye_z, 0, 0, 0, 0, 0, 1);
-	glOrtho(-20.0,20.0,-20.0,20.0,20.0,-3.0);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	lookAt();
 	
-	//glRotated(angle, x, y, z);
-	double scale = 3.0/aside; 
-	glScaled(scale, scale, scale);
 	
-	//glMatrixMode(GL_PROJECTION);
-	//glMultTransposeMatrixd(X_P);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glRotated(90, 0,1,0);
+	draw();
+	
+	
+	// second view
+	glViewport (w/2, h/2, w/2, h/2); 
+	glLoadIdentity();
+	glRotated(90, 1,0,0);
+	
+	draw();
+	
+	// third
+	glViewport (0, 0, w/2, h/2); 
+	glLoadIdentity();
+	//glRotated(90, 0,0,1);
+	draw();
+	
+	glViewport (w/2, 0, w/2, h/2); 
+	glLoadIdentity();
+	glTranslated(0,0,5);
+	gluPerspective(45, 1, 0.1, 10);
 	draw();
 	glFlush();
-	glutSwapBuffers();
-	
 }
 
 int init() {                                      
@@ -126,7 +144,7 @@ int init() {
 	glPointSize(2.0);
 	glColor3f(0.1f, 0.4f, 0.4f);
 
-	glLineWidth(5.0);
+	glLineWidth(1.0);
 	
 	//ec = lcm(100, rint(kr*100)) / 100;
 
@@ -163,9 +181,15 @@ void pressKey(unsigned char key, int x, int y) {
 			
 		case 's'://GLUT_KEY_LEFT: 
 			psi--;
+			//if (psi % 180 == 90 || psi % 180 == -90) {
+			//	phi += 180;
+			//}
 			break;
 		case 'w'://GLUT_KEY_RIGHT: 
 			psi++;
+			//if (psi % 180 == 90 || psi % 180 == -90) {
+			//	phi += 180;
+			//}
 			break;
 		case 'z'://GLUT_KEY_UP:
 			if (aside > 1)
@@ -175,7 +199,8 @@ void pressKey(unsigned char key, int x, int y) {
 			aside++;
 			break;
 	}
-	printf("%g\n", phi);
+
+	//printf("%d %d\n", phi, psi);
 	glutPostRedisplay();
  }
 
@@ -185,7 +210,7 @@ int main(int argc, char *argv[] ) {
 	glutInitWindowSize(500, 500);
 	glutCreateWindow("OpenGL lab 2");
 	
-	//glutReshapeFunc(reshape);
+	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(pressKey);
 	//glutKeyboardUpFunc(releaseKey);

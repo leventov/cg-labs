@@ -3,10 +3,77 @@
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
+#define LINES (100)
 
-//Compile with -lGL -lGLU -lglut
-// -lm for sin\cos & math
+int H = 600, W = 600;
+
+typedef struct {
+	double x, y, z;
+} vector;
+
+typedef struct {
+	vector p1, p2; 
+} segment;
+
+int zero(double d) {
+	return (fabs(d) < 0.001);
+}
+
+double sProduct(vector *a, vector *b) {
+	return (a->x * b->x) + (a->y * b->y) + (a->z * b->z);
+}
+
+vector sub(vector *a, vector *b) {
+	return (vector) {.x = a->x - b->x, .y = a->y - b->y, .z = a->z - b->z};
+}
+
+vector add(vector *a, vector *b) {
+	return (vector) {.x = a->x + b->x, .y = a->y + b->y, .z = a->z + b->z};
+}
+
+vector sk(vector *a, double k) {
+	return (vector) {.x = a->x *= k, .y = a->y *= k, .z =  a->z *= k};
+}
+
+vector param(segment *s, double k) {
+	return (vector) {.x = s->p1.x * (1.0 - k) + s->p2.x * k,
+	                 .y = s->p1.y * (1.0 - k) + s->p2.y * k,
+	                 .z = s->p1.z * (1.0 - k) + s->p2.z * k
+	                };
+}
+
+vector *n, *f;
+int k;
+
+segment clip(segment *s) {
+	double t0 = 0, t1 = 1;
+	double Ds, Ws, t;
+	vector ww;
+	vector d = sub(&(s->p2), &(s->p1));
+	for (int i = 0; i < k; i++) {
+		ww = sub(&(s->p1), f + i);
+		Ds = sProduct(&d, n + i);
+		Ws = sProduct(&ww, n + i);
+		if (zero(Ds)) goto m2; //2
+		t = -Ws/Ds;
+		if (Ds > 0.0) goto m1; //1
+		if (t < 0.0) goto m4; // 4
+		if (t < t1) t1 = t;
+		continue;
+		m1:
+		if (t > 1.0) goto m4; //4
+		if (t > t0) t0 = t;
+		continue;
+		m2:
+		if (Ws < 0.0) goto m4; //4
+	}
+	
+	m4:
+	printf("clip: %g %g\n", t0, t1);
+	return (segment) {param(s, t0), param(s, t1)};
+}
 
 int gcd (int a, int b) {
 	if (a == 1 || a == 0) return b;
@@ -22,7 +89,22 @@ GLenum polyMode;
 GLint phi = 0, psi = 45, aside = 1, top = 1;
 GLdouble PI = 3.14159265;
 
+GLint line_phi = 0, line_psi = 90;
+segment init_seg;
+segment res_seg;
+
 int h, w;
+
+void recountSeg() {
+	double rpsi = PI*line_psi/180;
+	double rphi = PI*line_phi/180;
+	init_seg.p1 = (vector) {-1, 0, 0};
+	init_seg.p2.x = cos(rphi);
+	init_seg.p2.y = sin(rphi);
+	init_seg.p2.z = cos(rpsi);
+	printf("init_end: %g %g %g\n", init_seg.p2.x, init_seg.p2.y, init_seg.p2.z);
+	res_seg = clip(&init_seg);
+}
 
 void reshape(int width, int height) {
 	h = height;
@@ -42,50 +124,36 @@ void normalize(double v[3]) {
 	v[2] /= c;
 }
 
-#define vCount (20)
-#define lCount (15)
+#define vCount (4)
+#define lCount (2)
 double r = 1.0;
 
-double c[lCount][vCount][3];
+double c[lCount][vCount][3] = {
+	{{-0.5, -0.5, -0.5}, {-0.5, 0.5, -0.5}, 
+	{-0.5, 0.5, 0.5}, {-0.5, -0.5, 0.5}},
+	{{0.5, -0.5, -0.5}, {0.5, 0.5, -0.5}, 
+	{0.5, 0.5, 0.5}, {0.5, -0.5, 0.5}}
+};
 double *center, *rx, *ry; 
-void makeCircle(double mc[vCount][3]) {
-	for (int i = 0; i < vCount; i++) {
-		double a = i*2*PI/vCount;
-		double mx = r*cos(a), my = r*sin(a);
-		for (int j = 0; j < 3; j++)
-			mc[i][j] = center[j] + rx[j]*mx + ry[j]*my;
-	}
-}
 
-void initVertices() {
-	center = (double[]) {0, 0, 0};
-	rx = (double[]) {0, 1, 0};
-	ry = (double[]) {1, 0, 0};
-	double z, x;
-	for (int i = 0; i < lCount; i++) {
-		double a = i * PI / 90;
-		double dz = 1.0/lCount * cos(a);
-		double dx = 1.0/lCount * sin(a);
-		z += dz;
-		x += dz;
-		double vv[3] = {dx, 0, dz}, vl[3] = {-dz, 0, dx};
-		crossProduct(vv, vl, ry);
-		crossProduct(vv, ry, rx);
-		normalize(ry);
-		normalize(rx);
-		center[0] = x;
-		center[2] = z;
-		makeCircle(c[i]);
+
+void initClip() {
+	k = 6;
+	n = (vector *) malloc(6 * sizeof(vector));
+	f = (vector *) malloc(6 * sizeof(vector));
+	for (int i = 0; i  < 6; i++) {
+		*(f + i) = i < 3 ? (vector) {-0.5, -0.5, -0.5} : (vector) {0.5, 0.5, 0.5};
 	}
+	*n = (vector) {1, 0, 0};
+	*(n + 1) = (vector){0, 1, 0};
+	*(n + 2) = (vector){0, 0, 1};
+	*(n + 3) = (vector){0, -1, 0};
+	*(n + 4) = (vector){0, 0, -1};
+	*(n + 5) = (vector){-1, 0, 0};
 }
 
 void draw() {
 	for (int i = 0; i < lCount; i++) {
-		//glBegin(GL_LINE_LOOP);
-		//for (int j = 0; j < vCount; j++) {
-		//	glVertex3dv(c[i][j]);
-		//	//printf("%f, %f, %f\n", c[i][j][0], c[i][j][1], c[i][j][2]);
-		//} glEnd();
 		if (i > 0) {
 		glBegin(GL_QUAD_STRIP);
 			for (int j = 0; j < vCount; j++) {
@@ -99,6 +167,21 @@ void draw() {
 		glEnd();
 		}
 	}
+	
+	glBegin(GL_LINES);
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3d(init_seg.p1.x, init_seg.p1.y, init_seg.p1.z);
+	glVertex3d(res_seg.p1.x, res_seg.p1.y, res_seg.p1.z);
+	
+	glColor3f(0.1f, 0.4f, 0.4f);
+	glVertex3d(res_seg.p1.x, res_seg.p1.y, res_seg.p1.z);
+	glVertex3d(res_seg.p2.x, res_seg.p2.y, res_seg.p2.z);
+	
+	glColor3f(1.0f, 0.0f, 0.0f);
+	glVertex3d(res_seg.p2.x, res_seg.p2.y, res_seg.p2.z);
+	glVertex3d(init_seg.p2.x, init_seg.p2.y, init_seg.p2.z);
+	glColor3f(0.1f, 0.4f, 0.4f);
+	glEnd();
 }
 
 void lookAt() {
@@ -193,7 +276,7 @@ int init() {
 	glLineWidth(1.0);
 	polyMode = GL_LINE;
 	//ec = lcm(100, rint(kr*100)) / 100;
-	initVertices();
+	initClip();
 
 	return 1;
 }
@@ -204,53 +287,42 @@ void mouse(int button, int state, int x, int y) {
 	direct = -direct;
 }
 
-
-/*
-void timf(int v) {
-	//offset_a += 190;
-	glutPostRedisplay();
-	
-	offset_a = offset_a +  1 * direct * PI / 360;
-	
-	printf("%f", offset_a);
-	glutTimerFunc( 100, timf, 0 );
-}
-*/
-
 void pressKey(unsigned char key, int x, int y) {
 	switch (key) {
-		case 'a'://GLUT_KEY_LEFT: 
+		case 'a':
 			phi++;
 			break;
-		case 'd'://GLUT_KEY_RIGHT: 
+		case 'd':
 			phi--;
 			break;
 			
-		case 's'://GLUT_KEY_LEFT: 
+		case 's':
 			psi--;
-			//if (psi % 180 == 90 || psi % 180 == -90) {
-			//	phi += 180;
-			//}
 			break;
-		case 'w'://GLUT_KEY_RIGHT: 
+		case 'w':
 			psi++;
-			//if (psi % 180 == 90 || psi % 180 == -90) {
-			//	phi += 180;
-			//}
 			break;
-		case 'z'://GLUT_KEY_UP:
+		case 'z':
 			if (aside > 1)
 				aside--;
 			break;
-		case 'x'://GLUT_KEY_DOWN: 
+		case 'x':
 			aside++;
 			break;
 		case 'f':
 			if (polyMode == GL_LINE) polyMode = GL_FILL;
 			else polyMode = GL_LINE;
+			
+		case 'k':
+			line_psi--;
+			recountSeg();
+			break;
+		case 'i':
+			line_psi++;
+			recountSeg();
+			break;
 	}
-
-	//printf("%d %d\n", phi, psi);
+	
 	glutPostRedisplay();
  }
 
@@ -271,3 +343,4 @@ int main(int argc, char *argv[] ) {
 	glutMainLoop();
 	return 0;
 }
+

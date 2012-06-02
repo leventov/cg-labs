@@ -111,7 +111,7 @@ int main(int argc, char *argv[] ) {
 	//glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(pressKey);
-	glutKeyboardUpFunc(releaseKey);
+	//glutKeyboardUpFunc(releaseKey);
 	//glutMouseFunc(mouse);
 	//glutTimerFunc(100, timf, 0); // Set up timer for 40ms, about 25 fps
 	

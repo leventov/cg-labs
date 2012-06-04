@@ -84,15 +84,21 @@ void initVertices() {
 	}
 }
 
-#define TEXTURE_SIDE (4)
+#define TEXTURE_SIDE (16)
 GLubyte texture[TEXTURE_SIDE][TEXTURE_SIDE][4];
 void generateTexture() {
 	for (int i = 0; i < TEXTURE_SIDE; i++) {
 		for (int j = 0; j < TEXTURE_SIDE; j++) {
-			int gap = rand() % 50 - 25;
-			texture[i][j][0] = 200 + gap;
-			texture[i][j][1] = 200 + gap;
-			texture[i][j][2] = 200 + gap;
+			int gap = rand() % 255;
+			//printf("%d\n", gap);
+			texture[i][j][0] = gap;
+			
+			gap = rand() % 255;
+			//printf("%d\n", gap);
+			texture[i][j][1] = gap;
+			gap = rand() % 255;
+			//printf("%d\n", gap);
+			texture[i][j][2] = gap;
 			texture[i][j][3] = 255;
 		}
 	}
@@ -137,6 +143,7 @@ void draw_cube() {
 
 void draw() {
 	draw_cube();
+	glColor3d(1.0, 1.0, 1.0);
 	for (int i = 0; i < lCount; i++) {
 		//glBegin(GL_LINE_LOOP);
 		//for (int j = 0; j < vCount; j++) {
@@ -244,13 +251,17 @@ float ambient[] = {1.0, 1.0, 0.0, 1.0};
 #define TUBE_SCALE (0.33)
 
 void display() {
+	glClear(GL_COLOR_BUFFER_BIT);
 	if (draw_texture)
 		glEnable(GL_TEXTURE_2D);
-	
+	//glEnable(GL_LIGHTING);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+	//glDisable(GL_LIGHTING);
+//	float spec[] = {1.0, 1.0, 1.0, 1.0};
+	//glMaterialfv(GL_FRONT, GL_SPECULAR, spec);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, reflection);
-	glClear(GL_COLOR_BUFFER_BIT);
+	
 	
 	// first view
 	glViewport (0, h/2, w/2, h/2); 
@@ -301,6 +312,7 @@ int init() {
 	glClearColor(0.9f, 0.9f, 0.9f, 0.9f);
 	glPointSize(2.0);
 	glColor3f(0.1f, 0.4f, 0.4f);
+	generateTexture();
 	
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
@@ -309,17 +321,26 @@ int init() {
 	glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, light_dir);
 	
 	glGenTextures(1, &textureID);
+	
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	
-	gluBuild2DMipmaps(
-		GL_TEXTURE_2D,
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	
+	glTexImage2D(
+		GL_TEXTURE_2D, 0, 
 		GL_RGBA,
-		TEXTURE_SIDE, TEXTURE_SIDE,
+		TEXTURE_SIDE, TEXTURE_SIDE, 0, 
 		GL_RGBA, GL_UNSIGNED_BYTE,
 		texture
 	);
+
+
                   
-	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 	glLineWidth(1.0);
 	//ec = lcm(100, rint(kr*100)) / 100;
